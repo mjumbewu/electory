@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Electory</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Electory -- Find Your Local Election Leaders">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="libs/bootstrap/2.1.1/css/bootstrap.css" rel="stylesheet">
+    <link href="libs/bootstrap/2.1.1/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.css" rel="stylesheet">
+    <link href="electory/style.css" rel="stylesheet">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le fav and touch icons -->
+<!--    <link rel="shortcut icon" href="libs/ico/favicon.ico">-->
+<!--    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="libs/ico/apple-touch-icon-144-precomposed.png">-->
+<!--    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="libs/ico/apple-touch-icon-114-precomposed.png">-->
+<!--    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="libs/ico/apple-touch-icon-72-precomposed.png">-->
+<!--    <link rel="apple-touch-icon-precomposed" href="libs/ico/apple-touch-icon-57-precomposed.png">-->
+  </head>
+
+  <body class="electory">
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+
+          <a class="brand" href="#">electory</a>
+
+          <div class="nav-collapse collapse">
+            <form id="header-login-form" class="navbar-form pull-right">
+              <button class="btn">Sign In</button>
+            </form>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <section id="intro-screen" class="intro-screen">
+        <h1>The directory of election leaders in your community</h1>
+
+        <form id="big-location-search">
+          <input type="text" class="input-xxlarge" placeholder="Enter your address, district, or ward here">
+          <button class="btn btn-large">Search</button>
+        </form>
+      </section>
+
+      <section id="division-screen" class="division-screen">
+      </section>
+
+    </div> <!-- /container -->
+
+    <script id="division-template" type="text/x-handlebars-template">
+      <div id="division{{ cid }}" class="row">
+        <section class="general-division-info span4">
+          <header>
+            <h1 class="division">Division {{ division }}</h1>
+            <h2 class="ward">Ward {{ ward }}</h2>
+          </header>
+
+          <div class="division-map"></div>
+        </section>
+
+        <section class="division-leader-board-info span8">
+        </section>
+      </div>
+    </script>
+
+    <script id="leader-board-template" type="text/x-handlebars-template">
+      <header>Election Leader Board</header>
+
+      <ol class="leaders">
+      </ol>
+    </script>
+
+    <script id="leader-template" type="text/x-handlebars-template">
+      <article class="leader-info">
+        <span class="avatar"></span>
+        <span class="name">
+          {{ firstname }} {{ lastname }} {{# party }}({{ party }}){{/ party }}
+        </span>
+        <span class="address">{{ address }}, Philadelphia, PA {{ zip }}</span>
+        <span class="role">{{ type }}</type>
+      </article>
+
+      <div class="leader-controls">
+        <span class="like"><button>Like</button></span>
+        <span class="flag"><button>Flag</button></span>
+        <span class="edit"><button>Edit</button></span>
+        <span class="delete"><button>Destroy</button></span>
+      </div>
+    </script>
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.0.0.beta6/handlebars.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.3.3/underscore-min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/backbone.js/0.9.2/backbone-min.js"></script>
+    <script src="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.js"></script>
+    <script src="libs/bootstrap/2.1.1/js/bootstrap.min.js"></script>
+    <script src="libs/bootstrap/2.1.1/js/bootstrap-collapse.js"></script>
+
+    <script src="electory/util.js"></script>
+    <script src="electory/models.js"></script>
+    <script src="electory/views.js"></script>
+    <script src="electory/routes.js"></script>
+    <script src="electory/app.js"></script>
+
+  </body>
+</html>

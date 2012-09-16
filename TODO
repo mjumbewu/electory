@@ -1,0 +1,11 @@
+User can find their division by putting in an address
+User can find their division by putting in the number
+User can see a list of divisions by putting in a ward
+
+User can see list of leaders for a given division
+
+User can provide their voter information to authenticate
+Authenticated user can add new leader
+Authenticated user can edit their own information
+Authenticated user can remove their own information
+Authenticated user can flag/support a leader

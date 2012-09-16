@@ -1,0 +1,54 @@
+@import url(http://fonts.googleapis.com/css?family=Cagliostro);
+
+body {
+  font-family: 'Cagliostro', sans-serif;
+  background-color: #fcf9ce;
+}
+
+.electory .navbar-inner {
+  background: none;
+  background-color: #dedcb8;
+          box-shadow: none;
+     -moz-box-shadow: none;
+  -webkit-box-shadow: none;
+}
+
+.brand {
+  text-indent: -1000px;
+  background-image: url(images/logo.png);
+  background-position: 10px -3px;
+  background-repeat: no-repeat;
+  width: 111px;
+}
+
+.intro-screen {
+  text-align: center;
+}
+
+.intro-screen input[type='text'] {
+  font-size: 16px;
+  margin-bottom: 0px;
+  padding: 9px 14px;
+}
+
+button {
+  text-transform: lowercase;
+}
+
+.division-map {
+  height: 100px;
+}
+
+@media screen and (min-width: 980px) {
+  body {
+    padding-top: 60px;
+  }
+
+  .intro-screen {
+    padding-top: 100px;
+  }
+
+  .division-map {
+    height: 400px;
+  }
+}
