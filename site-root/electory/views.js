@@ -10,6 +10,7 @@ var Electory = Electory || {};
 
     showIntro: function() {
       $('#intro-screen').show();
+      $('#division-screen').hide();
     },
 
     showDivision: function(division) {
@@ -40,7 +41,7 @@ var Electory = Electory || {};
     initialize: function() {
       this.app = this.options.app;
       this.division = this.model;
-      this.leaders = E.Leaders.forDivision(this.division);
+      this.leaders = new E.Leaders();
 
       this.mapView = new E.DivisionMapView({
         model: this.division,
@@ -60,6 +61,7 @@ var Electory = Electory || {};
     },
 
     onDivisionChange: function() {
+      this.leaders.fetchForDivision(this.division)
       this.render();
     },
 
@@ -90,7 +92,8 @@ var Electory = Electory || {};
       this.app = this.options.app;
       this.leaders = this.collection;
       this.template = {
-        render: Handlebars.compile($('#leader-board-template').html())
+        render: Handlebars.compile($('#leader-board-template').html()),
+        renderForm: Handlebars.compile($('#leader-form-template'))
       };
 
       this.initLeaderViews();
@@ -98,6 +101,17 @@ var Electory = Electory || {};
       this.leaders.on('add', this.onAddLeader, this);
       this.leaders.on('remove', this.onRemoveLeader, this);
       this.leaders.on('reset', this.onResetLeaders, this);
+    },
+    
+    events: {
+      'click .add-leader button': 'onClickAddLeaderButton'
+    },
+    
+    onClickAddLeaderButton: function() {
+      var context = {},
+          $form = this.template.renderForm(context);
+      
+      
     },
 
     onAddLeader: function(leader) {
@@ -107,7 +121,7 @@ var Electory = Electory || {};
 
     onRemoveLeader: function(leader) {
       this.removeLeaderView(leader);
-      this.destroyLeaderView(leader)
+      this.destroyLeaderView(leader);
     },
 
     onResetLeaders: function() {
@@ -130,7 +144,8 @@ var Electory = Electory || {};
     },
 
     removeLeaderView: function(leader) {
-      this.leaderViews[leader.cid].remove();
+      var leaderView = this.leaderViews[leader.cid];
+      if (leaderView) leaderView.remove();
     },
 
     destroyLeaderView: function(leader) {
@@ -164,7 +179,9 @@ var Electory = Electory || {};
     },
 
     render: function() {
-      var context = _.extend({}, this.leader),
+      var classifications = {'CM': 'Committee Member', 'WL': 'Ward Leader'},
+          prettyType = function() {return classifications[this.type];},
+          context = _.extend({pretty_type: prettyType}, this.leader.toJSON()),
           content;
 
       content = this.template.render(context);
@@ -172,28 +189,34 @@ var Electory = Electory || {};
 
       return this;
     }
-  })
+  });
 
 
   E.DivisionMapView = Backbone.View.extend({
+    initialize: function() {
+//      this.model.on('change', this.render, this);
+    },
+
     render: function() {
-      var pollingPlace = this.model.get('polling_place'),
-          map;
+      if (_.keys(this.model.toJSON()).length) {
+        var pollingPlace = this.model.get('polling_place'),
+            map;
 
-      // create a map in the "map" div, set the view to a given place and zoom
-      map = L.map(this.el).setView([pollingPlace.latitude,
-                                    pollingPlace.longitude], 16);
+        // create a map in the "map" div, set the view to a given place and zoom
+        map = L.map(this.el).setView([this.model.get('CENTROID_Y'),
+                                      this.model.get('CENTROID_X')], 16);
 
-      // add a CloudMade tile layer with style #997
-      L.tileLayer('http://{s}.tiles.mapbox.com/v3/mapbox.mapbox-streets/{z}/{x}/{y}.png')
-        .addTo(map);
+        // add a CloudMade tile layer with style #997
+        L.tileLayer('http://{s}.tiles.mapbox.com/v3/mapbox.mapbox-streets/{z}/{x}/{y}.png')
+          .addTo(map);
 
-      // add a marker in the given location, attach some popup content to it and open the popup
-      L.marker([pollingPlace.latitude, pollingPlace.longitude]).addTo(map)
-        .bindPopup(pollingPlace.name + '<br>' + pollingPlace.address)
-        .openPopup();
+        // add a marker in the given location, attach some popup content to it and open the popup
+        L.marker([this.model.get('POLLING_Y'), this.model.get('POLLING_X')]).addTo(map)
+          .bindPopup(this.model.get('POLLING_PL'))
+          .openPopup();
 
-      this.map = map;
+        this.map = map;
+      }
     }
   });
 

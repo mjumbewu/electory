@@ -46,8 +46,18 @@ var testLeaders = {
 (function($, E) {
 
   // Leaders
+  E.Leader = Backbone.Model.extend({
+    parse: function(resp, xhr) {
+      if (resp.leader) {
+        return resp.leader;
+      }
+      return resp;
+    }
+  });
+  
   E.Leaders = Backbone.Collection.extend({
     url: 'http://election-leaders.sites.emr.ge/leaders',
+    model: E.Leader,
 
     parse: function(resp, xhr) {
       var leaders = [],
@@ -60,14 +70,20 @@ var testLeaders = {
       });
 
       return leaders;
+    },
+    
+    fetchForDivision: function(division, options) {
+      this.url = 'http://election-leaders.sites.emr.ge/leaders?division=' + division.get('DIVISION') + '&ward=' + division.get('WARD');
+      this.fetch(options);
+      this.url = 'http://election-leaders.sites.emr.ge/leaders';
     }
   });
 
   E.Leaders.forDivision = function(division) {
     var leaders = new E.Leaders();
-    leaders.url = 'http://election-leaders.sites.emr.ge/leaders?division=' + division.get('division');
-
-    leaders.reset(testLeaders);
+    leaders.url = 'http://election-leaders.sites.emr.ge/leaders?division=' + division.get('division') + '&ward=' + division.get('ward');
+    leaders.fetch();
+    leaders.url = 'http://election-leaders.sites.emr.ge/leaders';
     return leaders;
   };
 
@@ -83,18 +99,19 @@ var testLeaders = {
         divisions.push(division);
       });
 
-      return divisions;
+      return divisions[0];
     }
   });
 
   E.Division.fromAddress = function(address) {
     var division = new E.Division();
 
-    E.Util.geocode(address, function(location) {
-      division.url = 'http://election-leaders.sites.emr.ge/divisions?near=';
-      division.url += location.latitude + ',' + location.longitude;
-
-      division.set(testDivision);
+    E.Util.geocode(address, function(data) {
+      var location = data.Locations[0];
+      E.Util.findPollInfo(location.XCoord, location.YCoord, function(data) {
+        var divisionData = $.parseJSON(data).features[0].attributes;
+        division.set(divisionData);
+      });
     });
 
     return division;
