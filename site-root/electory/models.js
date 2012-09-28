@@ -1,48 +1,5 @@
 var Electory = Electory || {};
 
-var testDivision = {
-  "id": "4c25bf740e0e6e41c8291bb19541b4a2",
-  "__class__": "Division",
-  "ward": 63,
-  "division": 16,
-  "centroid": {
-    "__type__": "geopoint",
-    "latitude": 40.09170151,
-    "longitude": -75.05110168
-  },
-  "polling_place": {
-    "name": "LEHIGH BAPTIST CHURCH",
-    "address": "934 ALBURGER AVE",
-    "__type__": "geopoint",
-    "latitude": 40.0923996,
-    "longitude": -75.04869843
-  }
-};
-
-var testLeaders = {
-  "success": true,
-  "total": 1,
-  "divisions": {
-    "4c25bf740e0e6e41c8291bb19541b4a2": {
-      "__class__": "Division",
-      "ward": 63,
-      "division": 16,
-      "centroid": {
-      "__type__": "geopoint",
-      "latitude": 40.09170151,
-      "longitude": -75.05110168
-    },
-    "polling_place": {
-      "name": "LEHIGH BAPTIST CHURCH",
-      "address": "934 ALBURGER AVE",
-      "__type__": "geopoint",
-      "latitude": 40.0923996,
-      "longitude": -75.04869843
-      }
-    }
-  }
-};
-
 (function($, E) {
 
   // Leaders
@@ -54,7 +11,7 @@ var testLeaders = {
       return resp;
     }
   });
-  
+
   E.Leaders = Backbone.Collection.extend({
     url: 'http://election-leaders.sites.emr.ge/leaders',
     model: E.Leader,
@@ -71,21 +28,13 @@ var testLeaders = {
 
       return leaders;
     },
-    
+
     fetchForDivision: function(division, options) {
       this.url = 'http://election-leaders.sites.emr.ge/leaders?division=' + division.get('DIVISION') + '&ward=' + division.get('WARD');
       this.fetch(options);
       this.url = 'http://election-leaders.sites.emr.ge/leaders';
     }
   });
-
-  E.Leaders.forDivision = function(division) {
-    var leaders = new E.Leaders();
-    leaders.url = 'http://election-leaders.sites.emr.ge/leaders?division=' + division.get('division') + '&ward=' + division.get('ward');
-    leaders.fetch();
-    leaders.url = 'http://election-leaders.sites.emr.ge/leaders';
-    return leaders;
-  };
 
   // Divisions
   E.Division = Backbone.Model.extend({
@@ -105,9 +54,12 @@ var testLeaders = {
 
   E.Division.fromAddress = function(address) {
     var division = new E.Division();
+    division.lookupAddress = address;
 
     E.Util.geocode(address, function(data) {
       var location = data.Locations[0];
+      division.matchedAddress = location.Address.StandardizedAddress;
+
       E.Util.findPollInfo(location.XCoord, location.YCoord, function(data) {
         var divisionData = $.parseJSON(data).features[0].attributes;
         division.set(divisionData);
@@ -117,15 +69,39 @@ var testLeaders = {
     return division;
   };
 
-  E.Division.fromNumber = function(number) {
+  E.Division.fromNumbers = function(wardNum, divisionNum) {
     var division = new E.Division();
 
-    division.url = 'http://election-leaders.sites.emr.ge/divisions?division=';
-    division.url += number;
-
-    division.set(testDivision);
+    // TODO: This doesn't return valid division info -- i.e., you can't look up by
+    // ward/division, only address right now.
+    division.url = 'http://election-leaders.sites.emr.ge/divisions?ward=' + wardNum + 'division=' + divisionNum;
+    division.set({});
 
     return division;
   };
+
+  // Users
+  E.Voter = Backbone.Model.extend({
+    authenticate: function(credentials) {
+      // dob=1988-03-08&houseno=3608&zip=19134
+      var authUrl = 'http://election-leaders.sites.emr.ge/authenticate',
+          voter = this;
+
+      voter.set(credentials);
+      $.post(authUrl, credentials, function(data) {
+        if (data.success) {
+          voter.set({id: data.id, token: data.token});
+          voter.trigger('succeed');
+        } else {
+          voter.error = data.error;
+          voter.trigger('fail');
+        }
+      });
+    },
+
+    isAuthenticated: function() {
+      return (this.get('token') !== undefined);
+    }
+  });
 
 })(jQuery, Electory);

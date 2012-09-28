@@ -77,6 +77,12 @@ ol {
 	display: block;
 }
 
+@media screen and (min-width: 768px) {
+  .division-map {
+    height: 400px;
+  }
+}
+
 @media screen and (min-width: 980px) {
   body {
     padding-top: 60px;
@@ -85,8 +91,10 @@ ol {
   .intro-screen {
     padding-top: 100px;
   }
+}
 
-  .division-map {
-    height: 400px;
+@media (max-width: 767px) {
+  .modal.fade.in {
+    top: 5%;
   }
 }

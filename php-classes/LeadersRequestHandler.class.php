@@ -61,7 +61,24 @@ class LeadersRequestHandler extends RequestHandler
 	
 	static public function handleCreateRequest()
 	{
-		$Leader = Leader::create(static::getPostData(), true);
+		// get request data and check sanity
+		$requestData = static::getPostData();
+		
+		if(empty($requestData['voterid']))
+		{
+			JSON::error('voterid required');
+		}
+		
+		// begin new model with only enough fields to authenticate
+		$Leader = Leader::create(array(
+			'voterid' => $requestData['voterid']
+		));
+		
+		// authenticate creation against partial phantom model
+		static::authenticateRequest($Leader, $requestData);
+		
+		// fill other fields and save
+		$Leader->applyData($requestData, true);
 		
 		return static::respond('leaderCreated', array(
 			'success' => true
@@ -95,23 +112,12 @@ class LeadersRequestHandler extends RequestHandler
 	
 	static public function handleUpdateRequest(Leader $Leader)
 	{
-		$data = static::getPostData();
-		
-		// verify
-#		if(!empty($Leader->voterid))
-#		{
-#			if(empty($data['votoken']))
-#			{
-#				JSON::error('votoken is required to edit this record');
-#			}
-#			elseif(!VoterDB::verify($data['votoken'], $Leader->voterid)->success)
-#			{
-#				die('success');
-#			}
-#		}
-		
-		$Leader->applyData($data, true);
-	
+		$requestData = static::getPostData();
+
+		static::authenticateRequest($Leader, $requestData);
+
+		$Leader->applyData($requestData, true);
+
 		return static::respond('leaderUpdated', array(
 			'success' => true
 			,'leader' => $Leader
@@ -121,6 +127,8 @@ class LeadersRequestHandler extends RequestHandler
 	
 	static public function handleDeleteRequest(Leader $Leader)
 	{
+		static::authenticateRequest($Leader, static::getPostData());
+		
 		return static::respond('leaderDeleted', array(
 			'success' => $Leader->delete()
 			,'leader' => $Leader
@@ -159,5 +167,26 @@ class LeadersRequestHandler extends RequestHandler
 			,'flagKey' => $Flag->getKey()
 			,'flag' => $Flag
 		));
+	}
+	
+	
+	// internal methods
+	static protected function authenticateRequest(Leader $Leader, &$requestData)
+	{
+		if(!empty($Leader->voterid))
+		{
+			if(empty($requestData['votoken']))
+			{
+				JSON::error('votoken is required to edit this record');
+			}
+			elseif(!VoterDB::verify($requestData['votoken'], $Leader->voterid)->success)
+			{
+				JSON::error('votoken is invalid');
+			}
+		}
+		
+		unset($requestData['votoken']);
+		
+		return true;
 	}
 }

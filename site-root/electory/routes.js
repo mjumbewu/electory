@@ -4,36 +4,72 @@ var Electory = Electory || {};
 
   E.App = Backbone.Router.extend({
     initialize: function() {
-      this.conductor = new E.ConductorView({app: this});
+      this.voter = new E.Voter();
+      this.conductor = new E.ConductorView({app: this, voter: this.voter});
+
+      this.searchedDivisions = {};
+      _.bindAll(this);
     },
 
     routes: {
       '': 'intro',
+      'login': 'login',
       'search/:place': 'search',
-      'division/:number': 'division'
+      'search/:place/add-leader': 'addLeaderToPlace',
+      'search/:place/:leader/edit': 'editPlaceLeader'
+    },
+
+    authRequired: function(successFunc) {
+      if (!this.voter.isAuthenticated()) {
+        this.conductor.showAuthenticationForm(successFunc);
+      } else {
+        successFunc();
+      }
     },
 
     intro: function() {
       this.conductor.showIntro();
     },
 
-    search: function(place) {
-      var divisionPattern = /^(\d+)$/,
-          match = divisionPattern.exec(place),
-          division;
+    login: function() {
+      this.conductor.showAuthenticationForm();
+    },
 
-      if (match === null) {
+    getDivision: function(place) {
+      var division = this.searchedDivisions[place];
+
+      if (!division) {
         division = E.Division.fromAddress(place);
-      } else {
-        division = E.Division.fromNumber(match[0]);
+        division.leaders = new E.Leaders();
+        this.searchedDivisions[place] = division;
       }
 
+      return division;
+    },
+
+    search: function(place) {
+      var division = this.getDivision(place);
       this.conductor.showDivision(division);
     },
 
-    division: function(number) {
-      var division = E.Division.fromNumber(number);
+    addLeaderToPlace: function(place) {
+      var division = this.getDivision(place);
       this.conductor.showDivision(division);
+
+      this.authRequired(_.bind(function() {
+
+        var leaders = division.leaders;
+        this.conductor.showNewLeaderForm(leaders);
+
+      }, this));
+    },
+
+    editPlaceLeader: function(place, leader) {
+      this.authRequired(_.bind(function() {
+
+
+
+      }, this));
     }
   });
 

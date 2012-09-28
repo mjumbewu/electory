@@ -5,7 +5,9 @@ var Electory = Electory || {};
   E.ConductorView = Backbone.View.extend({
     initialize: function() {
       this.app = this.options.app;
-      this.introView = new E.IntroView({app: this.options.app});
+      this.introView = new E.IntroView({app: this.app});
+      this.headerAuthView = new E.HeaderAuthView({app: this.app, model: this.options.voter});
+      this.authView = new E.AuthView({app: this.app, model: this.options.voter});
     },
 
     showIntro: function() {
@@ -13,11 +15,23 @@ var Electory = Electory || {};
       $('#division-screen').hide();
     },
 
-    showDivision: function(division) {
-      this.divisionView = new E.DivisionView({model: division, app: this.app});
+    showDivision: function(division, leaders) {
+      this.divisionView = new E.DivisionView({model: division,
+                                              collection: leaders,
+                                              app: this.app});
 
       $('#intro-screen').hide();
-      $('#division-screen').html(this.divisionView.render().$el);
+      $('#division-screen').show().html(this.divisionView.render().$el);
+    },
+
+    showAuthenticationForm: function(nextFunc) {
+      this.authView.nextFunc = nextFunc;
+      this.authView.render().$el.modal('show');
+    },
+
+    showNewLeaderForm: function(leaders) {
+      this.leaderFormView = new E.AddLeaderView({collection: leaders});
+      this.leaderFormView.render().$el.modal('show');
     }
   });
 
@@ -37,11 +51,88 @@ var Electory = Electory || {};
   });
 
 
+  E.AuthView = Backbone.View.extend({
+    el: '#authentication-modal',
+
+    initialize: function() {
+      this.template = {
+        render: Handlebars.compile($('#auth-form-template').html())
+      };
+
+      this.model.on('fail', this.onAuthenticationFail, this);
+      this.model.on('succeed', this.onAuthenticationSucceed, this);
+    },
+
+    events: {
+      'click .auth-btn': 'onClickAuthButton'
+    },
+
+    onClickAuthButton: function(evt) {
+      evt.preventDefault();
+      var credentials = E.Util.getAttrs(this.$el);
+
+      credentials.dob = credentials.dob_year + '-' + credentials.dob_month + '-' + credentials.dob_day;
+      delete credentials['dob_year'];
+      delete credentials['dob_month'];
+      delete credentials['dob_day'];
+
+      this.model.authenticate(credentials);
+    },
+
+    onAuthenticationSucceed: function() {
+      this.$el.modal('hide');
+
+      if (this.nextFunc) {
+        this.nextFunc();
+      }
+    },
+
+    onAuthenticationFail: function() {
+      alert('authentication failed: ' + this.model.error);
+    },
+
+    render: function() {
+      var dob = this.model.get('dob') || '',
+          context = _.extend({
+            dob_year: dob.substr(0, 4),
+            dob_month: dob.substr(5, 2),
+            dob_day: dob.substr(8, 2)
+          }, this.model.toJSON());
+      this.$el.html(this.template.render(context));
+      return this;
+    }
+  });
+
+
+  E.HeaderAuthView = Backbone.View.extend({
+    el: '#header-login-form',
+
+    initialize: function() {
+      this.model.on('change', this.render, this);
+    },
+
+    events: {
+      'click button': 'onClickHeaderSignInButton'
+    },
+
+    onClickHeaderSignInButton: function(evt) {
+      evt.preventDefault();
+      this.options.app.navigate('/login', {trigger: true});
+    },
+
+    render: function() {
+      if (this.model.isAuthenticated()) {
+        this.$el.html('<p>' + this.model.id + '</p>');
+      }
+    }
+  });
+
+
   E.DivisionView = Backbone.View.extend({
     initialize: function() {
       this.app = this.options.app;
       this.division = this.model;
-      this.leaders = new E.Leaders();
+      this.leaders = this.collection;
 
       this.mapView = new E.DivisionMapView({
         model: this.division,
@@ -61,13 +152,14 @@ var Electory = Electory || {};
     },
 
     onDivisionChange: function() {
-      this.leaders.fetchForDivision(this.division)
+      this.leaders.fetchForDivision(this.division);
       this.render();
     },
 
     render: function() {
       var context = _.extend({
-            cid: this.division.cid
+            cid: this.division.cid,
+            MATCHED_ADDRESS: this.division.matchedAddress || ''
           }, this.division.toJSON()),
           content,
           leaderBoardContent;
@@ -93,7 +185,6 @@ var Electory = Electory || {};
       this.leaders = this.collection;
       this.template = {
         render: Handlebars.compile($('#leader-board-template').html()),
-        renderForm: Handlebars.compile($('#leader-form-template'))
       };
 
       this.initLeaderViews();
@@ -102,21 +193,18 @@ var Electory = Electory || {};
       this.leaders.on('remove', this.onRemoveLeader, this);
       this.leaders.on('reset', this.onResetLeaders, this);
     },
-    
+
     events: {
-      'click .add-leader button': 'onClickAddLeaderButton'
+      'click .add-leader button': 'onClickAddLeaderButton',
     },
-    
+
     onClickAddLeaderButton: function() {
-      var context = {},
-          $form = this.template.renderForm(context);
-      
-      
+      this.app.navigate('/search/' + this.app.loadedPlace + '/add-leader', {trigger: true});
     },
 
     onAddLeader: function(leader) {
-      this.addLeaderView(leader);
-      this.renderLeaderView(leader);
+      var leaderView = this.addLeaderView(leader);
+      this.renderLeaderView(leaderView);
     },
 
     onRemoveLeader: function(leader) {
@@ -136,11 +224,13 @@ var Electory = Electory || {};
     },
 
     addLeaderView: function(leader) {
-      this.leaderViews[leader.cid] = new E.LeaderView({
+      leaderView = new E.LeaderView({
         app: this.app,
         model: leader,
         tagName: 'li'
       });
+      this.leaderViews[leader.cid] = leaderView;
+      return leaderView;
     },
 
     removeLeaderView: function(leader) {
@@ -157,6 +247,7 @@ var Electory = Electory || {};
 
       this.$el.html(content);
       _.each(this.leaderViews, _.bind(this.renderLeaderView, this));
+      this.delegateEvents();
 
       return this;
     },
@@ -164,6 +255,46 @@ var Electory = Electory || {};
     renderLeaderView: function(leaderView) {
       var content = leaderView.render().$el;
       this.$el.find('.leaders').append(content);
+    }
+  });
+
+
+  E.AddLeaderView = Backbone.View.extend({
+    el: '#leader-edit-modal',
+
+    initialize: function() {
+      this.leaders = this.collection;
+      this.template = {
+        render: Handlebars.compile($('#leader-form-template').html())
+      };
+    },
+
+    events: {
+      'submit': 'onSaveLeader'
+    },
+
+    onSaveLeader: function(evt) {
+      evt.preventDefault();
+
+      var attrs = E.Util.getAttrs(this.$el);
+      this.leaders.create(attrs,
+      {
+        wait: true,
+        success: function() {
+            this.$el.modal('hide');
+            this.app.navigate('/search/' + this.loadedPlace);
+          },
+        error: function(leaders, jqXHR, options) {
+            jqXHR.responseText
+          }
+      });
+    },
+
+    render: function() {
+      var context = {};
+
+      this.$el.html(this.template.render(context));
+      return this;
     }
   });
 
