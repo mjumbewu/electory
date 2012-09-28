@@ -1,1 +1,6 @@
 *~
+
+# Emerge files
+_parent*/
+*-home.tpl
+*-home.php
