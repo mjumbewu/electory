@@ -83,7 +83,6 @@ var Electory = Electory || {};
   // Users
   E.Voter = Backbone.Model.extend({
     authenticate: function(credentials) {
-      // dob=1988-03-08&houseno=3608&zip=19134
       var authUrl = 'http://election-leaders.sites.emr.ge/authenticate',
           voter = this;
 
